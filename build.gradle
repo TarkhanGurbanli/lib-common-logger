@@ -1,0 +1,83 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'org.springframework.boot' version '3.2.4' apply false
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'az.tarkhangurbanli'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withJavadocJar()
+    withSourcesJar()
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    // Core logging dependencies
+    api 'org.slf4j:slf4j-api:2.0.9' // SLF4J for logging abstraction
+    implementation 'ch.qos.logback:logback-classic:1.4.11' // Logback for logging implementation
+
+    // Spring dependencies for AOP and SQL logging
+    implementation 'org.springframework.boot:spring-boot-autoconfigure:3.2.4'
+    api 'org.springframework.boot:spring-boot-starter-aop:3.2.4' // For method logging
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.2.4' // For SQL logging
+    api 'net.ttddyy:datasource-proxy:1.7' // For SQL query logging
+
+    // Lombok for reducing boilerplate
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.4'
+
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.4'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'org.springframework.boot:spring-boot-dependencies:3.2.4'
+    }
+}
+
+jar {
+    enabled = true
+}
+
+test {
+    useJUnitPlatform()
+}
+
+wrapper {
+    gradleVersion = '8.5'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
+}

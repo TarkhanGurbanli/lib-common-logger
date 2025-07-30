@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=az.ailab.lib.common.config.DataSourceProxyConfig
+org.springframework.boot.autoconfigure.AutoConfiguration.imports=az.ailab.lib.common.config.DataSourceProxyConfig
