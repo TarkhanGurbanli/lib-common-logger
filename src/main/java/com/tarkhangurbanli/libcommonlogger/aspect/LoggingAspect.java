@@ -15,7 +15,6 @@ import org.springframework.util.StringUtils;
 @Component
 @Aspect
 @Slf4j
-@RequiredArgsConstructor
 public class LoggingAspect {
 
     /**
@@ -61,34 +60,32 @@ public class LoggingAspect {
 
     @Around("springBeanPointcut()")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        if (!log.isDebugEnabled()) {
-            return joinPoint.proceed();
-        }
-
         String declaringType = joinPoint.getSignature().getDeclaringTypeName();
         String methodName = joinPoint.getSignature().getName();
         String arguments = Arrays.toString(joinPoint.getArgs());
 
-        log.debug("Enter: {}.{}() with argument[s] = {}", declaringType, methodName, arguments);
+        // INFO LEVEL
+        if (log.isInfoEnabled()) {
+            log.info("Executing: {}.{}()", declaringType, methodName);
+        }
+
+        // DEBUG LEVEL
+        if (log.isDebugEnabled()) {
+            log.debug("Enter: {}.{}() with argument[s] = {}", declaringType, methodName, arguments);
+        }
 
         try {
             Object result = joinPoint.proceed();
-            log.debug("Exit: {}.{}() with result = {}", declaringType, methodName, result);
+
+            // DEBUG OUTPUT DETAIL
+            if (log.isDebugEnabled()) {
+                log.debug("Exit: {}.{}() with result = {}", declaringType, methodName, result);
+            }
+
             return result;
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: {} in {}.{}()", arguments, declaringType, methodName);
             throw e;
-        }
-    }
-
-    private void logAtLevel(String level, String message, Object... args) {
-        switch (level) {
-            case "TRACE" -> log.trace(message, args);
-            case "DEBUG" -> log.debug(message, args);
-            case "INFO" -> log.info(message, args);
-            case "WARN" -> log.warn(message, args);
-            case "ERROR" -> log.error(message, args);
-            default -> log.info(message, args);
         }
     }
 
