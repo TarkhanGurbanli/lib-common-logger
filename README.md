@@ -1,6 +1,6 @@
 # 📜 lib-common-logger
 
-![Version](https://img.shields.io/badge/version-v1.0.3-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-v1.0.4-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 A lightweight Spring AOP library for logging method calls and SQL queries in Java apps. 🌟 Simple, flexible, and performant! 🚀
 
