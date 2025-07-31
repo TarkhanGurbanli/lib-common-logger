@@ -1,4 +1,11 @@
-rootProject.name = 'lib-common-logger'
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google() // Add if you use Android plugins
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -7,3 +14,5 @@ dependencyResolutionManagement {
         maven { url 'https://jitpack.io' }
     }
 }
+
+rootProject.name = 'lib-common-logger'
