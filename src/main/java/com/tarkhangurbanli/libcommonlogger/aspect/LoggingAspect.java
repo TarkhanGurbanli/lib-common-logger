@@ -17,17 +17,12 @@ import org.springframework.stereotype.Component;
 public class LoggingAspect {
 
     /**
-     * Pointcut that matches all Spring-managed beans annotated with {@link org.springframework.stereotype.Component}
-     * (including {@code @Service}, {@code @Repository}, {@code @Controller}, etc.),
-     * excluding the aspect package itself to avoid recursive logging.
-     *
-     * <p>This makes the aspect applicable to all components in the application context,
-     * regardless of their package, ensuring broad coverage without tight coupling to a base package name.</p>
+     * Pointcut that matches all Spring-managed beans within configurable packages,
+     * excluding the aspect package to prevent recursive logging.
      */
-    @Pointcut("within(@org.springframework.stereotype.Component *) && !within(com.tarkhangurbanli.libcommonlogger.aspect..*)")
+    @Pointcut("within(com.tarkhangurbanli..*) && !within(com.tarkhangurbanli.libcommonlogger.aspect..*)")
     public void springBeanPointcut() {
     }
-
 
     /**
      * Around advice for logging method execution at different levels.
