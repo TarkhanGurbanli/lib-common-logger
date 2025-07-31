@@ -38,7 +38,6 @@ repositories {
 ```gradle
 dependencies {
     implementation 'com.github.TarkhanGurbanli:lib-common-logger:v1.0.3'
-    implementation 'org.springframework.boot:spring-boot-starter-aop'
 }
 ```
 
