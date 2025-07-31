@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Setter
 @Getter
-@Component
 @ConfigurationProperties(prefix = "logging.common")
 public class LoggingProperties {
 
