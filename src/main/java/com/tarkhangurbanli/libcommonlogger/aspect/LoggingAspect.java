@@ -1,6 +1,5 @@
 package com.tarkhangurbanli.libcommonlogger.aspect;
 
-import com.tarkhangurbanli.libcommonlogger.properties.LoggingProperties;
 import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +17,6 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @RequiredArgsConstructor
 public class LoggingAspect {
-
-    private final LoggingProperties properties;
 
     /**
      * Pointcut that matches all Spring-managed beans within the
@@ -64,14 +61,7 @@ public class LoggingAspect {
 
     @Around("springBeanPointcut()")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        String logLevel = properties.getLevel().toUpperCase();
-
-        // DEBUG Level
-        if ("DEBUG".equals(logLevel) && !log.isDebugEnabled()) {
-            return joinPoint.proceed();
-        } else if ("INFO".equals(logLevel) && !log.isInfoEnabled()) {
-            return joinPoint.proceed();
-        } else if ("TRACE".equals(logLevel) && !log.isTraceEnabled()) {
+        if (!log.isDebugEnabled()) {
             return joinPoint.proceed();
         }
 
@@ -79,11 +69,11 @@ public class LoggingAspect {
         String methodName = joinPoint.getSignature().getName();
         String arguments = Arrays.toString(joinPoint.getArgs());
 
-        logAtLevel(logLevel, "Enter: {}.{}() with argument[s] = {}", declaringType, methodName, arguments);
+        log.debug("Enter: {}.{}() with argument[s] = {}", declaringType, methodName, arguments);
 
         try {
             Object result = joinPoint.proceed();
-            logAtLevel(logLevel, "Exit: {}.{}() with result = {}", declaringType, methodName, result);
+            log.debug("Exit: {}.{}() with result = {}", declaringType, methodName, result);
             return result;
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: {} in {}.{}()", arguments, declaringType, methodName);
@@ -92,7 +82,7 @@ public class LoggingAspect {
     }
 
     private void logAtLevel(String level, String message, Object... args) {
-        switch(level) {
+        switch (level) {
             case "TRACE" -> log.trace(message, args);
             case "DEBUG" -> log.debug(message, args);
             case "INFO" -> log.info(message, args);
@@ -113,7 +103,7 @@ public class LoggingAspect {
      * is logged; otherwise, only the root cause class name is logged to minimize verbosity.</p>
      *
      * @param joinPoint provides reflective access to the method where the exception was thrown
-     * @param e the exception thrown by the target method
+     * @param e         the exception thrown by the target method
      */
     @AfterThrowing(pointcut = "springBeanPointcut()", throwing = "e")
     public void logAfterThrowing(JoinPoint joinPoint, Throwable e) {
