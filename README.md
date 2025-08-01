@@ -1,18 +1,20 @@
 # 📜 Common Logger Library
 
-![Version](https://img.shields.io/badge/version-v1.0.6-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-v1.0.7-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 A powerful and configurable method and SQL logging library for Spring Boot applications. This library enables method-level logging using Spring AOP and SQL-level logging using a proxied `DataSource`.
+
+---
 
 ## Features
 
 ### ✅ Method Logging (AOP)
 
-- Logs entry, exit, arguments, return values
+- Logs method entry, exit, arguments, and return values
 - Supports `INFO`, `DEBUG`, and `ERROR` log levels
 - Reflective argument summarization for detailed logging
-- Supports scoped logging with configurable base package
-- Fallbacks to all `@Component` classes if no package configured
+- Configurable scoped logging with `@EnableLogging(basePackage = "...")`
+- Fallback to all Spring-managed `@Component` classes if `basePackage` is not provided
 
 ### ✅ SQL Logging (DataSource Proxy)
 
@@ -31,31 +33,50 @@ Add the dependency to your Maven `pom.xml`:
 <dependency>
     <groupId>com.tarkhangurbanli</groupId>
     <artifactId>lib-common-logger</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
 Or for Gradle:
 
 ```groovy
-implementation 'com.tarkhangurbanli:lib-common-logger:1.0.6'
+implementation 'com.tarkhangurbanli:lib-common-logger:1.0.7'
 ```
 
 ---
 
 ## Quick Start
 
-### 1. Enable Logging
+### 1. Enable Method Logging
 
-In your main Spring Boot configuration class:
+Add `@EnableLogging` to your main configuration class:
 
 ```java
 @EnableLogging
-@Configuration
-public class AppConfig {
-    // other beans
+@SpringBootApplication
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
 }
 ```
+
+#### ✅ Optionally, restrict logging to a specific package:
+
+```java
+@EnableLogging(basePackage = "com.example.myapp.service")
+@SpringBootApplication
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
+}
+```
+
+- If `basePackage` is **not provided**, the logger will automatically log all Spring-managed beans (`@Component`, `@Service`, `@RestController`, etc.)
+- If `basePackage` **is provided**, only classes under that package will be logged.
+
+---
 
 ### 2. Enable SQL Logging (Optional)
 
@@ -63,18 +84,18 @@ public class AppConfig {
 @EnableSqlLogging
 @Configuration
 public class SqlConfig {
-    // other data source configs
+    // your datasource configuration
 }
 ```
 
-### 3. Enable Logging and SQL Logging (Optional)
+### 3. Combined Usage (Method + SQL Logging)
 
 ```java
-@EnableLogging
+@EnableLogging(basePackage = "com.example")
 @EnableSqlLogging
-@EnableLogging
-public class LibConfig {
-    // other data source configs
+@Configuration
+public class AppConfig {
+    // your configuration
 }
 ```
 
@@ -83,11 +104,6 @@ public class LibConfig {
 ## Configuration (application.yml)
 
 ```yaml
-logging:
-  aspect:
-    enabled: true
-    base-package: com.example.myapp  # Optional; fallback to @Component if not set
-
 spring:
   jpa:
     sql-logging:
@@ -109,21 +125,20 @@ spring:
 
 ## Output Example
 
-**INFO log:**
+### **Method Logging**
 
+**INFO log:**
 ```
 Executing: UserService.saveUser() with args summary: name=John, age=30
 ```
 
 **DEBUG log:**
-
 ```
 Enter: UserService.saveUser() with full arguments: [User(name=John, age=30)]
 Exit: UserService.saveUser() with result: true
 ```
 
-**SQL log:**
-
+### **SQL log:**
 ```
 Query: INSERT INTO users (name, age) VALUES ('John', 30); | rowsAffected=1 time=12ms
 ```
@@ -146,5 +161,4 @@ MIT License - see [LICENSE](LICENSE).
 
 ---
 
-Enjoy clean, customizable and production-safe logging in your Spring Boot apps!
-
+Enjoy clean, customizable, and production-safe logging in your Spring Boot apps!
