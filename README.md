@@ -1,111 +1,132 @@
-# 📜 lib-common-logger
+# 📜 Common Logger Library
 
-![Version](https://img.shields.io/badge/version-v1.0.4-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-v1.0.6-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
-A lightweight Spring AOP library for logging method calls and SQL queries in Java apps. 🌟 Simple, flexible, and performant! 🚀
+A powerful and configurable method and SQL logging library for Spring Boot applications. This library enables method-level logging using Spring AOP and SQL-level logging using a proxied `DataSource`.
+
+## Features
+
+### ✅ Method Logging (AOP)
+
+- Logs entry, exit, arguments, return values
+- Supports `INFO`, `DEBUG`, and `ERROR` log levels
+- Reflective argument summarization for detailed logging
+- Supports scoped logging with configurable base package
+- Fallbacks to all `@Component` classes if no package configured
+
+### ✅ SQL Logging (DataSource Proxy)
+
+- Logs executed SQL queries and execution time
+- Inline parameter rendering (dev/local only)
+- Logs batch size and affected rows
+- Safety-first: avoids parameter exposure in production
 
 ---
 
-## ✨ Features
+## Installation
 
-- **Method Logging** 📋
-  - INFO: `BookService.create() called, args: title=Book1, name=John`
-  - DEBUG: Detailed entry/exit with full args/results
-  - ERROR: Exception details with root cause
+Add the dependency to your Maven `pom.xml`:
 
-- **SQL Logging** 🗄️
-  - Logs JPA/JdbcTemplate queries, e.g., `INFO: INSERT INTO books, params: [Book1, John]`
+```xml
+<dependency>
+    <groupId>com.tarkhangurbanli</groupId>
+    <artifactId>lib-common-logger</artifactId>
+    <version>1.0.6</version>
+</dependency>
+```
 
-- **Configurable** ⚙️
-  - Enable with `@EnableLogging`
-  - Set log levels via `application.properties`
+Or for Gradle:
+
+```groovy
+implementation 'com.tarkhangurbanli:lib-common-logger:1.0.6'
+```
 
 ---
 
-## 🛠️ Setup
+## Quick Start
 
-Add to `build.gradle`:
+### 1. Enable Logging
 
-### 1. JitPack Repository
-```gradle
-repositories {
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
+In your main Spring Boot configuration class:
+
+```java
+@EnableLogging
+@Configuration
+public class AppConfig {
+    // other beans
 }
 ```
 
-### 2. Dependency
-```gradle
-dependencies {
-    implementation 'com.github.TarkhanGurbanli:lib-common-logger:v1.0.3'
+### 2. Enable SQL Logging (Optional)
+
+```java
+@EnableSqlLogging
+@Configuration
+public class SqlConfig {
+    // other data source configs
+}
+```
+
+### 3. Enable Logging and SQL Logging (Optional)
+
+```java
+@EnableLogging
+@EnableSqlLogging
+@EnableLogging
+public class LibConfig {
+    // other data source configs
 }
 ```
 
 ---
 
-## 🚀 Usage
+## Configuration (application.yml)
 
-1. **Enable Logging**:
-   ```java
-   @SpringBootApplication
-   @EnableLogging
-   public class App {
-       public static void main(String[] args) {
-           SpringApplication.run(App.class, args);
-       }
-   }
-   ```
+```yaml
+logging:
+  aspect:
+    enabled: true
+    base-package: com.example.myapp  # Optional; fallback to @Component if not set
 
-   **or**
-
-   ```java
-    @Configuration
-    @EnableSqlLogging
-    @EnableLogging
-    public class LibConfiguration {
-
-    }
-   ```
-
-3. **Set Log Level**:
-   `application.properties`:
-   ```properties
-   logging.level.root=INFO  # or DEBUG
-   ```
-
-4. **Example**:
-   ```java
-   @Service
-   public class BookService {
-       public String create(String title, String name) {
-           return "Book: " + title;
-       }
-   }
-   ```
-
-   **Output**:
-   - INFO: `Executing: BookService.create(), args: title=Book1, name=John`
-   - DEBUG: `Enter: BookService.create() with args: [Book1, John]`
+spring:
+  jpa:
+    sql-logging:
+      enabled: true
+      show-parameters: true  # Only for 'dev' or 'local' profiles
+```
 
 ---
 
-## ⚙️ Configuration
+## Logging Levels
 
-- **Custom Packages**:
-  ```java
-  @EnableLogging(basePackages = {"com.example"})
-  ```
-
-- **Log Level**:
-  ```properties
-  logging.level.com.tarkhangurbanli.libcommonlogger.aspect=DEBUG
-  ```
+| Level | Description                                |
+| ----- | ------------------------------------------ |
+| INFO  | Summarized method arguments                |
+| DEBUG | Full arguments, return values, stack trace |
+| ERROR | Exceptions with root cause                 |
 
 ---
 
-## 🤝 Contributing
+## Output Example
 
-Got ideas? 💡 Open an [issue](https://github.com/TarkhanGurbanli/lib-common-logger/issues) or submit a PR!
+**INFO log:**
+
+```
+Executing: UserService.saveUser() with args summary: name=John, age=30
+```
+
+**DEBUG log:**
+
+```
+Enter: UserService.saveUser() with full arguments: [User(name=John, age=30)]
+Exit: UserService.saveUser() with result: true
+```
+
+**SQL log:**
+
+```
+Query: INSERT INTO users (name, age) VALUES ('John', 30); | rowsAffected=1 time=12ms
+```
 
 ---
 
@@ -115,4 +136,15 @@ MIT License - see [LICENSE](LICENSE).
 
 ---
 
+## Author
+
+**Tarkhan Gurbanli**
+
+---
+
 🌐 [github.com/TarkhanGurbanli/lib-common-logger](https://github.com/TarkhanGurbanli/lib-common-logger)
+
+---
+
+Enjoy clean, customizable and production-safe logging in your Spring Boot apps!
+
