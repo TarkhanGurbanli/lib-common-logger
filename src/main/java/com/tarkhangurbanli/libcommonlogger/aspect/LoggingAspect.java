@@ -1,94 +1,115 @@
 package com.tarkhangurbanli.libcommonlogger.aspect;
 
-import com.tarkhangurbanli.libcommonlogger.properties.LoggingAspectProperties;
 import jakarta.annotation.PostConstruct;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.AfterThrowing;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.aspectj.lang.annotation.*;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
+
 /**
- * Aspect for logging method invocations on Spring-managed beans.
- *
- * <p>Provides logging at multiple levels:</p>
+ * Aspect responsible for dynamic method-level logging in Spring applications.
+ * <p>
+ * This aspect logs method invocations across configurable packages or, if no package is provided,
+ * for Spring-managed components annotated with {@code @Component}, {@code @Service}, or {@code @RestController}.
+ * <p>
+ * Logging is performed at different levels:
  * <ul>
- *   <li><strong>INFO</strong> level: Logs concise method entry with summarized arguments.</li>
- *   <li><strong>DEBUG</strong> level: Logs detailed method entry and exit including arguments and return values.</li>
- *   <li><strong>ERROR</strong> level: Logs exceptions and root cause messages.</li>
+ *     <li><strong>INFO</strong>: Logs a summarized view of method arguments.</li>
+ *     <li><strong>DEBUG</strong>: Logs detailed arguments and return values.</li>
+ *     <li><strong>ERROR</strong>: Captures exceptions with contextual information.</li>
  * </ul>
  *
- * <p>The target base package for logging is configurable through the {@code logging.aspect.base-package} property.
- * If not set, all classes annotated with Spring's {@code @Component} will be logged.</p>
+ * Logging behavior is controlled via the {@code logging.aspect.basePackage} system property, set via the {@code @EnableLogging} annotation.
  *
  * @author Tarkhan
  * @since 1.0.0
  */
-@Slf4j
 @Aspect
 @Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "logging.aspect", name = "enabled", havingValue = "true", matchIfMissing = true)
+@Slf4j
 public class LoggingAspect {
 
-    private final LoggingAspectProperties properties;
-    private String effectiveBasePackage;
+    private String basePackage;
 
     /**
-     * Initializes the effective base package for logging.
-     * <p>
-     * Reads the {@code logging.aspect.base-package} value from application properties.
-     * If not provided, falls back to logging all Spring-managed components.
+     * Initializes the aspect and reads the base package value from system properties.
+     * If the base package is empty, logs will apply to Spring-managed components.
      */
     @PostConstruct
     public void init() {
-        effectiveBasePackage = properties.getBasePackage();
-        if (effectiveBasePackage == null || effectiveBasePackage.isBlank()) {
-            log.warn("No base package provided. Defaulting to log all @Component classes.");
-        } else {
-            log.info("Logging will apply to base package: {}", effectiveBasePackage);
-        }
+        basePackage = System.getProperty("logging.aspect.basePackage", "");
+        log.info("LoggingAspect initialized with basePackage: {}", basePackage.isEmpty() ? "Spring Components" : basePackage);
     }
 
     /**
-     * Pointcut that matches all Spring-managed beans annotated with {@code @Component} or its specializations.
-     * <p>
-     * Used as the primary filter when no specific base package is configured.
+     * Pointcut for any method execution.
      */
-    @Pointcut("execution(* *(..)) && (@within(org.springframework.stereotype.Component) || @target(org.springframework.stereotype.Component))")
-    public void componentBeans() {
+    @Pointcut("execution(* *(..))")
+    private void anyMethod() {}
+
+    /**
+     * Pointcut for Spring-managed beans (e.g., annotated with @Component, @Service, @RestController).
+     */
+    @Pointcut("within(@org.springframework.stereotype.Component *) || within(@org.springframework.stereotype.Service *) || within(@org.springframework.web.bind.annotation.RestController *)")
+    private void springManagedBeans() {}
+
+    /**
+     * Pointcut for methods in classes under the configured base package.
+     */
+    @Pointcut("execution(* *(..)) && withinPackage()")
+    private void methodInConfiguredPackage() {}
+
+    /**
+     * Pointcut for methods in Spring-managed components.
+     */
+    @Pointcut("execution(* *(..)) && springManagedBeans()")
+    private void methodInSpringBeans() {}
+
+    /**
+     * Combines the base package and Spring component pointcuts to apply logging dynamically.
+     */
+    @Pointcut("execution(* *(..)) && (withinPackage() || springManagedBeans())")
+    public void dynamicLoggingPointcut() {}
+
+    /**
+     * Excludes this aspect class from being intercepted to prevent recursion.
+     */
+    @Pointcut("within(com.tarkhangurbanli.libcommonlogger.aspect..*)")
+    public void selfExclusion() {}
+
+    /**
+     * Placeholder pointcut used for package-level dynamic filtering.
+     * Actual filtering is handled programmatically via {@code basePackage}.
+     */
+    @Pointcut("!selfExclusion() && execution(* *(..))")
+    private void withinPackage() {
+        // Dynamic implementation
     }
 
     /**
-     * Logs method entry, exit, arguments, return values, and exceptions.
-     * <p>
-     * Logging behavior depends on the enabled log level:
-     * <ul>
-     *     <li><strong>INFO</strong>: Summarized arguments only.</li>
-     *     <li><strong>DEBUG</strong>: Full arguments and return value.</li>
-     *     <li><strong>ERROR</strong>: Exception details.</li>
-     * </ul>
+     * Logs method entry, arguments, exit result, and exceptions around target methods.
+     * Only applies to matched methods based on the pointcuts and basePackage.
      *
-     * @param joinPoint the intercepted method call context
-     * @return the result of the method execution
-     * @throws Throwable if the target method throws an exception
+     * @param joinPoint the join point providing method context
+     * @return result of method execution
+     * @throws Throwable any exception thrown during execution
      */
-    @Around("componentBeans()")
+    @Around("dynamicLoggingPointcut() && !selfExclusion()")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
         String className = joinPoint.getSignature().getDeclaringTypeName();
         String methodName = joinPoint.getSignature().getName();
         Object[] args = joinPoint.getArgs();
 
+        if (!basePackage.isEmpty() && !className.startsWith(basePackage)) {
+            return joinPoint.proceed(); // skip logging if class is outside base package
+        }
+
         if (log.isInfoEnabled()) {
-            String summary = summarizeArguments(args);
-            log.info("Executing: {}.{}() with args summary: {}", className, methodName, summary);
+            log.info("Executing: {}.{}() with args summary: {}", className, methodName, summarizeArguments(args));
         }
 
         if (log.isDebugEnabled()) {
@@ -101,95 +122,80 @@ public class LoggingAspect {
                 log.debug("Exit: {}.{}() with result: {}", className, methodName, result);
             }
             return result;
-        } catch (IllegalArgumentException e) {
-            log.error("Illegal argument in {}.{}(): args = {}, error: {}", className, methodName, Arrays.toString(args),
-                    e.getMessage(), e);
-            throw e;
-        } catch (Throwable t) {
-            log.error("Unexpected error in {}.{}(): {}", className, methodName, t.getMessage(), t);
-            throw t;
+        } catch (Throwable ex) {
+            log.error("Exception in {}.{}(): {}", className, methodName, ex.getMessage(), ex);
+            throw ex;
         }
     }
 
     /**
-     * Logs exceptions thrown by methods matched by the pointcut.
-     * <p>
-     * Stack trace is logged only when DEBUG logging is enabled.
+     * Logs exceptions thrown by methods matched by the logging pointcut.
      *
-     * @param joinPoint the intercepted method call
-     * @param e the exception that was thrown
+     * @param joinPoint the join point providing context
+     * @param e the exception thrown by the target method
      */
-    @AfterThrowing(pointcut = "componentBeans()", throwing = "e")
+    @AfterThrowing(pointcut = "dynamicLoggingPointcut()", throwing = "e")
     public void logAfterThrowing(JoinPoint joinPoint, Throwable e) {
         String className = joinPoint.getSignature().getDeclaringTypeName();
         String methodName = joinPoint.getSignature().getName();
-        Throwable root = getRootCause(e);
+        String rootCause = getRootCauseClassName(e);
+
+        if (!basePackage.isEmpty() && !className.startsWith(basePackage)) return;
 
         if (log.isDebugEnabled()) {
-            log.error("Exception in {}.{}(): cause = {}, message = {}, stacktrace:", className, methodName, root.getClass().getName(),
-                    e.getMessage(), e);
+            log.error("Exception in {}.{}(): cause = {}, message = {}, stacktrace:", className, methodName, rootCause, e.getMessage(), e);
         } else {
-            log.error("Exception in {}.{}(): cause = {}, message = {}", className, methodName, root.getClass().getName(),
-                    e.getMessage());
+            log.error("Exception in {}.{}(): cause = {}, message = {}", className, methodName, rootCause, e.getMessage());
         }
     }
 
     /**
-     * Creates a summary of method arguments for concise logging.
-     * <p>
-     * If the argument is a simple type, its value is logged directly.
-     * For objects, selected fields are extracted using reflection.
+     * Summarizes method arguments for concise INFO-level logging.
+     * If the argument is an object, tries to extract its fields using reflection.
+     * Sensitive fields such as 'password' or 'secret' are skipped.
      *
-     * @param args the arguments to summarize
-     * @return string summary of the arguments
+     * @param args method arguments
+     * @return summarized string representation
      */
     private String summarizeArguments(Object[] args) {
-        if (args == null || args.length == 0) {
-            return "no arguments";
-        }
+        if (args == null || args.length == 0) return "no arguments";
+
         StringBuilder summary = new StringBuilder();
         for (int i = 0; i < args.length; i++) {
             Object arg = args[i];
             if (arg == null) {
                 summary.append("arg").append(i).append("=null, ");
-                continue;
-            }
-            if (arg instanceof String || arg instanceof Number || arg instanceof Boolean) {
+            } else if (arg instanceof String || arg instanceof Number || arg instanceof Boolean) {
                 summary.append("arg").append(i).append("=").append(arg).append(", ");
-                continue;
-            }
-            try {
-                Field[] fields = arg.getClass().getDeclaredFields();
-                for (Field field : fields) {
-                    if (field.getName().toLowerCase().contains("password") || field.getName().toLowerCase().contains("secret")) {
-                        continue;
+            } else {
+                try {
+                    Field[] fields = arg.getClass().getDeclaredFields();
+                    for (Field field : fields) {
+                        if (field.getName().toLowerCase().contains("password") || field.getName().toLowerCase().contains("secret")) continue;
+                        field.setAccessible(true);
+                        summary.append(field.getName()).append("=").append(field.get(arg)).append(", ");
                     }
-                    field.setAccessible(true);
-                    Object value = field.get(arg);
-                    summary.append(field.getName()).append("=").append(value).append(", ");
+                } catch (Exception e) {
+                    summary.append("arg").append(i).append("=").append(arg).append(", ");
                 }
-            } catch (Exception ex) {
-                summary.append("arg").append(i).append("=").append(arg).append(", ");
             }
         }
-        if (summary.length() > 0) {
-            summary.setLength(summary.length() - 2);
-        }
+        if (!summary.isEmpty()) summary.setLength(summary.length() - 2);
         return summary.toString();
     }
 
     /**
-     * Extracts the root cause of a Throwable.
+     * Traverses the exception stack to find the root cause class name.
      *
-     * @param throwable the top-level exception
-     * @return the root cause in the exception chain
+     * @param throwable the original exception
+     * @return name of the root cause class
      */
-    private Throwable getRootCause(Throwable throwable) {
+    private String getRootCauseClassName(Throwable throwable) {
         Throwable root = throwable;
         while (root.getCause() != null && root.getCause() != root) {
             root = root.getCause();
         }
-        return root;
+        return root.getClass().getName();
     }
 
 }
