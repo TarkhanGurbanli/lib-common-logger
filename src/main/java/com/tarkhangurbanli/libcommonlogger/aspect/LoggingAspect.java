@@ -58,8 +58,12 @@ public class LoggingAspect {
      */
     @Pointcut("within(@org.springframework.stereotype.Component *) || " +
             "within(@org.springframework.stereotype.Service *) || " +
-            "within(@org.springframework.web.bind.annotation.RestController *)")
+            "within(@org.springframework.web.bind.annotation.RestController *) || " +
+            "within(@org.springframework.stereotype.Repository *)")
     private void springManagedBeans() {}
+
+    @Pointcut("within(org.springframework.data.repository.core.support.RepositoryComposition+)")
+    private void excludeSpringDataInternal() {}
 
     /**
      * Pointcut for servlet filters and registration beans to exclude from logging.
@@ -98,7 +102,7 @@ public class LoggingAspect {
      * @return the result of method execution
      * @throws Throwable if the underlying method throws an exception
      */
-    @Around("dynamicLoggingPointcut()")
+    @Around("dynamicLoggingPointcut() && !excludeSpringDataInternal()")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
         String className = joinPoint.getSignature().getDeclaringTypeName();
         String methodName = joinPoint.getSignature().getName();
@@ -135,7 +139,7 @@ public class LoggingAspect {
      * @param joinPoint the join point where exception was thrown
      * @param e         the exception
      */
-    @AfterThrowing(pointcut = "dynamicLoggingPointcut()", throwing = "e")
+    @AfterThrowing(pointcut = "dynamicLoggingPointcut() && !excludeSpringDataInternal()", throwing = "e")
     public void logAfterThrowing(JoinPoint joinPoint, Throwable e) {
         String className = joinPoint.getSignature().getDeclaringTypeName();
         String methodName = joinPoint.getSignature().getName();
