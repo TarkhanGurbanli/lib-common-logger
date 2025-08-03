@@ -49,7 +49,7 @@ import org.springframework.context.annotation.Import;
  * @author Tarkhan
  * @see com.tarkhangurbanli.libcommonlogger.aspect.LoggingAspect
  * @see LoggingRegistrar
- * @since 1.0.0
+ * @since 1.1.0
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
